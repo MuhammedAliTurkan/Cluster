@@ -1,71 +1,82 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
+  const { login, token } = useAuth();
+  const nav = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/app";
+
   const [form, setForm] = useState({ email: "", password: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState("");
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  // Eğer zaten giriş yapmışsa bu sayfada durmasın
+  if (token) {
+    // küçük bir koruma: router içinde çağrıldığı için güvenli
+    nav(from, { replace: true });
+  }
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) =>
+    setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login form:", form);
-    // TODO: backend API çağrısı yapılacak
+    setErr("");
+    setSubmitting(true);
+    try {
+      await login(form.email.trim(), form.password);
+      nav(from, { replace: true }); // ✨ kritik satır
+    } catch (ex) {
+      setErr(ex?.response?.data?.message || "Login failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-[#1C1C1C]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#1C1C1C]">
       <div className="bg-[#2B2B2B] p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold text-white text-center mb-6">
-          Hoş geldin!
-        </h1>
-        <p className="text-gray-400 text-center mb-6">
-          Hesabına giriş yap ya da yeni hesap oluştur.
-        </p>
+        <h1 className="text-2xl font-bold text-white text-center mb-6">Giriş yap</h1>
+
+        {err && (
+          <div className="mb-4 rounded-lg bg-red-500/10 text-red-300 px-3 py-2 text-sm">
+            {err}
+          </div>
+        )}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {/* Email */}
-          <div>
-            <label className="block text-gray-300 text-sm mb-1">E-posta</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full p-3 rounded-md bg-[#3A3A3A] text-white border border-[#4A4A4A] focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none"
-              placeholder="ornek@mail.com"
-              required
-            />
-          </div>
-
-          {/* Şifre */}
-          <div>
-            <label className="block text-gray-300 text-sm mb-1">Şifre</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              className="w-full p-3 rounded-md bg-[#3A3A3A] text-white border border-[#4A4A4A] focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none"
-              placeholder="********"
-              required
-            />
-          </div>
-
-          {/* Giriş Yap Butonu */}
+          <input
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Email"
+            className="w-full px-3 py-2 rounded-lg bg-[#1F1F1F] text-white outline-none"
+            required
+          />
+          <input
+            name="password"
+            type="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Şifre"
+            className="w-full px-3 py-2 rounded-lg bg-[#1F1F1F] text-white outline-none"
+            required
+          />
           <button
             type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-md transition"
+            disabled={submitting}
+            className="w-full rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white py-2"
           >
-            Giriş Yap
+            {submitting ? "Giriş yapılıyor..." : "Giriş yap"}
           </button>
         </form>
 
-        {/* Register link */}
-        <p className="text-gray-400 text-sm text-center mt-6">
+        <p className="text-sm text-zinc-400 mt-4 text-center">
           Hesabın yok mu?{" "}
-          <Link to="/register" className="text-orange-400 hover:underline">
+          <Link to="/register" className="text-zinc-200 underline">
             Kaydol
           </Link>
         </p>
