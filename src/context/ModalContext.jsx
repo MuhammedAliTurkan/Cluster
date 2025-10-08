@@ -1,26 +1,31 @@
-import { createContext, useContext, useState, useMemo } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 const ModalContext = createContext(null);
 export const useModals = () => useContext(ModalContext);
 
 export function ModalProvider({ children }) {
-  const [createServerOpen, setCreateServerOpen] = useState(false);
-  const [createChannelOpen, setCreateChannelOpen] = useState(false);
-  const [channelPreset, setChannelPreset] = useState({ type: "text", categoryId: null });
+  const [serverHubOpen, setServerHubOpen] = useState(false);
+  const [serverHubTab, setServerHubTab] = useState("create");
+  const [presetInvite, setPresetInvite] = useState("");
 
-  const value = useMemo(() => ({
-    createServerOpen,
-    openCreateServer: () => setCreateServerOpen(true),
-    closeCreateServer: () => setCreateServerOpen(false),
+  const openServerHub = ({ tab = "create", invite = "" } = {}) => {
+    setServerHubTab(tab);
+    setPresetInvite(invite);
+    setServerHubOpen(true);
+  };
+  const closeServerHub = () => setServerHubOpen(false);
 
-    createChannelOpen,
-    openCreateChannel: (preset = {}) => {
-      setChannelPreset({ type: "text", categoryId: null, ...preset });
-      setCreateChannelOpen(true);
-    },
-    closeCreateChannel: () => setCreateChannelOpen(false),
-    channelPreset,
-  }), [createServerOpen, createChannelOpen, channelPreset]);
+  const value = useMemo(
+    () => ({
+      serverHubOpen,
+      serverHubTab,
+      presetInvite,
+      openServerHub,
+      closeServerHub,
+      setServerHubTab,
+    }),
+    [serverHubOpen, serverHubTab, presetInvite]
+  );
 
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
 }

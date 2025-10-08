@@ -1,32 +1,79 @@
-import { useAuth } from "../../context/AuthContext";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useChat } from "../../context/ChatContext";
-import { Link, useLocation } from "react-router-dom";
+import * as dmApi from "../../services/dmApi";   // 🔹 EKLENDİ
 
 export default function Navbar() {
-  const { user } = useAuth();
-  const { channels, activeChannelId } = useChat();
+  const { activeServerId, activeChannelId } = useChat();
   const loc = useLocation();
 
-  const ch = channels.find(c => c.id === activeChannelId);
-  const title = ch ? (ch.type === "text" ? `# ${ch.name}` : ch.name) : "—";
+  const servers = [];
+  const channels = [];
+
+  const activeServer = useMemo(
+    () => (Array.isArray(servers) ? servers : []).find(s => s.id === activeServerId) || null,
+    [servers, activeServerId]
+  );
+  const activeChannel = useMemo(
+    () => (Array.isArray(channels) ? channels : []).find(c => c.id === activeChannelId) || null,
+    [channels, activeChannelId]
+  );
+
+  const [dmTitle, setDmTitle] = useState("DM");
+
+  useEffect(() => {
+    const m = loc.pathname.match(/\/app\/dm\/([^/]+)/);
+    const chId = m?.[1];
+    if (!chId) { setDmTitle("DM"); return; }
+    let ok = true;
+    (async () => {
+      try {
+        const ch = await dmApi.getChannel(chId);   // 🔹 namespace import sayesinde çağrı
+        if (!ok || !ch) return;
+        let t = ch.title?.trim();
+        if (!t && Array.isArray(ch.participants) && ch.participants.length) {
+          const meId = localStorage.getItem("userId");
+          const other = ch.participants.find(p => p.id !== meId) || ch.participants[0];
+          t = other?.displayName || other?.username || "DM";
+        }
+        setDmTitle(t || "DM");
+      } catch {
+        setDmTitle("DM");
+      }
+    })();
+    return () => { ok = false; };
+  }, [loc.pathname]);
+
+  const title = useMemo(() => {
+    if (loc.pathname.startsWith("/app/friends")) return "Arkadaşlar";
+    if (loc.pathname.startsWith("/app/dm/")) return dmTitle;
+    if (loc.pathname.startsWith("/app/voice")) return "Ses Kanalı";
+    if (loc.pathname.startsWith("/app/video")) return "Video Görüşmesi";
+    if (loc.pathname.startsWith("/app/discover")) return "Keşfet";
+    if (activeServerId) {
+      const sName = activeServer?.name ?? "Sunucu";
+      const cName = activeChannel?.name ?? "Kanal";
+      return `${sName} • ${cName}`;
+    }
+    return "Anasayfa";
+  }, [loc.pathname, activeServerId, activeServer, activeChannel, dmTitle]);
 
   return (
-    <div className="h-12 flex items-center justify-between px-4 border-b border-[#333] bg-[#222]">
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300 text-sm">{loc.pathname.includes("voice") ? "Voice" : loc.pathname.includes("video") ? "Video" : "Chat"}</span>
-        <span className="text-white font-semibold">{title}</span>
+    <div className="h-12 flex items-center justify-between px-4 border-b border-[#2a2a2a] bg-[#1f1f1f]">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-white font-semibold truncate">{title}</span>
       </div>
-
-      <div className="flex items-center gap-3">
-        <input
-          placeholder="Ara…"
-          className="bg-[#2B2B2B] border border-[#3A3A3A] rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-        />
-        <Link to="/settings" className="text-gray-300 hover:text-white">⚙️</Link>
-        <div className="flex items-center gap-2 bg-[#2B2B2B] px-2 py-1 rounded">
-          <span className="text-lg">{user?.avatar}</span>
-          <span className="text-sm">{user?.name}</span>
-        </div>
+      <div className="flex items-center gap-2">
+        <button
+          className="text-sm text-gray-300 hover:text-white px-2 py-1 rounded hover:bg-[#2b2b2b] transition"
+          onClick={() => console.log("Search open")}
+          title="Ara"
+        >🔍</button>
+        <button
+          className="text-sm text-gray-300 hover:text-white px-2 py-1 rounded hover:bg-[#2b2b2b] transition"
+          onClick={() => console.log("Settings open")}
+          title="Ayarlar"
+        >⚙️</button>
       </div>
     </div>
   );

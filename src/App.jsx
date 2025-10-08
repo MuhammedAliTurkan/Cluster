@@ -1,63 +1,28 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import Navbar from "./components/navbar/Navbar";
-import SidebarServers from "./components/sidebar/SidebarServers";
-import SidebarChannels from "./components/sidebar/SidebarChannels";
-import UserSideBar from "./components/users/UserSideBar";
-import ChatWindow from "./components/chat/ChatWindow";
-import VoiceChannel from "./components/voice/VoiceChannel";
-import VideoCall from "./components/video/VideoCall";
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Friends from "./pages/Friends";
-import Settings from "./pages/Settings";
-import { AuthProvider } from "./context/AuthContext";
+// src/App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
 import { ModalProvider } from "./context/ModalContext";
-import CreateServerModal from "./components/modals/CreateServerModal";
-import CreateChannelModal from "./components/modals/CreateChannelModal";
 
-function Shell() {
-  const loc = useLocation();
-  const isSettings = loc.pathname.startsWith("/settings");
+import PrivateRoute from "./components/PrivateRoute";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import MainApp from "./pages/MainApp";
 
-  // SETTINGS tam ekran: hiçbir yan panel veya navbar yok
-  if (isSettings) {
+function RootGate() {
+  const { token, loading } = useAuth();
+
+  if (loading) {
     return (
-      <div className="h-screen w-screen bg-[#1C1C1C] text-white">
-        <Routes>
-          <Route path="/settings/*" element={<Settings />} />
-        </Routes>
+      <div className="h-screen w-screen bg-[#1C1C1C] text-white grid place-items-center">
+        Yükleniyor…
       </div>
     );
   }
 
-  // Normal uygulama kabuğu
-  return (
-    <div className="h-screen w-screen bg-[#1C1C1C] text-white flex">
-      <SidebarServers />
-      <SidebarChannels />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Navbar />
-        <div className="flex-1 min-h-0">
-          <Routes>
-            <Route path="/" element={<Navigate to="/app" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-
-            <Route path="/app" element={<Dashboard />}>
-              <Route index element={<ChatWindow />} />
-              <Route path="voice/:channelId" element={<VoiceChannel />} />
-              <Route path="video/:roomId" element={<VideoCall />} />
-            </Route>
-
-            <Route path="/friends/*" element={<Friends />} />
-          </Routes>
-        </div>
-      </div>
-      <UserSideBar />
-    </div>
-  );
+  // Giriş yaptıysa ana uygulamaya; değilse login'e
+  // İlk iniş sayfası olarak /app/friends kullanıyoruz
+  return <Navigate to={token ? "/app/friends" : "/login"} replace />;
 }
 
 export default function App() {
@@ -66,10 +31,27 @@ export default function App() {
       <AuthProvider>
         <ChatProvider>
           <ModalProvider>
-            <Shell />
-            {/* Modals: app genelinde görünür */}
-            <CreateServerModal />
-            <CreateChannelModal />
+            <Routes>
+              {/* Kök yönlendirme */}
+              <Route path="/" element={<RootGate />} />
+
+              {/* Anonim sayfalar */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+
+              {/* Korumalı ana uygulama (tüm /app altı burada) */}
+              <Route
+                path="/app/*"
+                element={
+                  <PrivateRoute>
+                    <MainApp />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* Bilinmeyen her şey köke döner */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </ModalProvider>
         </ChatProvider>
       </AuthProvider>
