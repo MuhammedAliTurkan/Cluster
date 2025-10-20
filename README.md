@@ -1,6 +1,6 @@
 # 🌐 Cluster — Modern Discord-Style Chat Platform
 
-**Cluster**; gerçek zamanlı iletişim, sunucular, kanallar, mesajlaşma ve medya paylaşımı özelliklerini barındıran, **Discord benzeri** bir açık kaynak sohbet uygulamasıdır.  
+**Cluster**; gerçek zamanlı iletişim, sunucular, kanallar, mesajlaşma ve medya paylaşımı özelliklerini barındıran, **Discord benzeri** bir sohbet uygulamasıdır.  
 Backend **Spring Boot + PostgreSQL + WebSocket (STOMP)**, frontend ise **React (Vite) + TailwindCSS** ile geliştirilmiştir.
 
 ---
