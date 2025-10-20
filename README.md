@@ -16,7 +16,7 @@ Backend **Spring Boot + PostgreSQL + WebSocket (STOMP)**, frontend ise **React (
 ### 🎧 Medya & Ses *(geliştirme aşamasında)*
 - Jitsi tabanlı video/ses görüşmeleri (lib-jitsi-meet)  
 - Mikrofon, kulaklık ve ses durumu kontrolü (tray sistemi)  
-- Çoklu kullanıcı odaları ve ekran paylaşımı planlı  
+- Çoklu kullanıcı odaları ve ekran paylaşımı  
 
 ### 👥 Kullanıcı & Kimlik
 - JWT tabanlı kimlik doğrulama  
@@ -26,7 +26,7 @@ Backend **Spring Boot + PostgreSQL + WebSocket (STOMP)**, frontend ise **React (
 ### 🎨 Arayüz
 - Tamamen **React + TailwindCSS** ile responsive arayüz  
 - Discord tarzı modern, koyu tema  
-- Sidebar, tray, kanal listeleri ve hover efektli kartlar  
+- Sidebar, tray, kanal listeleri ve hover efektli kartlar *(geliştirme aşamasında)* 
 
 ---
 
@@ -80,7 +80,6 @@ Backend **Spring Boot + PostgreSQL + WebSocket (STOMP)**, frontend ise **React (
 | **Medya** | Jitsi (lib-jitsi-meet) |
 | **Gerçek Zamanlı** | STOMP WebSocket / SockJS |
 
-
 ---
 
 ## 🔒 Güvenlik Özellikleri
@@ -89,11 +88,9 @@ Backend **Spring Boot + PostgreSQL + WebSocket (STOMP)**, frontend ise **React (
 - Kullanıcı bazlı yetki kontrolü (DM, sunucu erişimleri)  
 - UUID ID sistemi (tahmin edilemez kimlikler)  
 - Transaction ve Exception yönetimi  
-- Kapsamlı hata yakalama ve tutarlı JSON response yapısı  
-
-
 
 ---
 
 
-> 🧡 **Cluster** — açık kaynak, modern ve geliştirilebilir bir topluluk sohbet platformu.
+
+
