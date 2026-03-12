@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { http } from "../../services/http";
+import { serverApi } from "../../services/serverApi";
 
-export default function ServerHubModal({ open, onClose, initialTab = "create", token }) {
-  const [tab, setTab] = useState(initialTab); // 'create' | 'join'
+export default function ServerHubModal({ open, onClose, initialTab = "create", onCreated }) {
+  const [tab, setTab] = useState(initialTab);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const [iconFile, setIconFile] = useState(null);
   const [iconPreview, setIconPreview] = useState("");
   const [invite, setInvite] = useState("");
   const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const dialogRef = useRef(null);
 
   useEffect(() => setTab(initialTab), [initialTab]);
@@ -24,48 +29,56 @@ export default function ServerHubModal({ open, onClose, initialTab = "create", t
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  if (!open) return null;
-
   const modalCls = useMemo(() => `fixed inset-0 z-50`, []);
+
+  if (!open) return null;
 
   const createServer = async () => {
     setLoading(true);
     try {
-      const form = new FormData();
-      form.append("name", name);
-      form.append("description", desc);
-      if (iconFile) form.append("icon", iconFile);
-      const res = await fetch("http://localhost:8080/api/servers", {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: form,
-      });
-      if (!res.ok) throw new Error(`Sunucu oluşturulamadı (${res.status})`);
+      await http.post("/api/servers", { name: name.trim(), description: desc.trim() || null, iconUrl: null, isPublic });
+      setName("");
+      setDesc("");
+      setIsPublic(false);
+      setIconFile(null);
+      onCreated?.();
       onClose?.();
     } catch (e) {
       console.error(e);
-      alert(e.message);
+      alert(e.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const previewInvite = async () => {
+    const code = invite.trim().split("/").pop(); // URL veya kod kabul et
+    if (!code) return;
+    setPreviewLoading(true);
+    setPreview(null);
+    try {
+      const data = await serverApi.previewInvite(code);
+      setPreview(data);
+    } catch (e) {
+      alert(e.response?.data?.message || e.message || "Davet kodu geçersiz");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const joinServer = async () => {
+    const code = invite.trim().split("/").pop();
+    if (!code) return;
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8080/api/servers/join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ invite: invite.trim() }),
-      });
-      if (!res.ok) throw new Error(`Sunucuya katılım başarısız (${res.status})`);
+      await serverApi.joinByCode(code);
+      setInvite("");
+      setPreview(null);
+      onCreated?.();
       onClose?.();
     } catch (e) {
       console.error(e);
-      alert(e.message);
+      alert(e.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
@@ -83,7 +96,7 @@ export default function ServerHubModal({ open, onClose, initialTab = "create", t
             onClick={onClose}
             className="h-9 w-9 rounded-lg bg-[#2b2d31] hover:bg-[#3a3d43] grid place-items-center"
             title="Kapat"
-          >✕</button>
+          ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 text-gray-300 hover:text-white"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
         </div>
 
         <div className="px-6 pt-4 flex gap-2">
@@ -124,16 +137,54 @@ export default function ServerHubModal({ open, onClose, initialTab = "create", t
                     className="w-full p-3 rounded-md bg-[#2b2d31] text-white border border-[#3a3d43] focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                 </div>
+                <div className="flex items-center justify-between p-3 rounded-md bg-[#2b2d31] border border-[#3a3d43]">
+                  <div>
+                    <div className="text-sm text-white font-medium">Herkese Açık Sunucu</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Keşfet'te görünür, herkes katılabilir</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPublic(p => !p)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-orange-500" : "bg-[#3a3d43]"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${isPublic ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="max-w-xl">
-              <label className="block text-gray-300 text-sm mb-1">Davet / Sunucu linki</label>
-              <input
-                value={invite} onChange={(e) => setInvite(e.target.value)} placeholder="https://…  veya  abc123"
-                className="w-full p-3 rounded-md bg-[#2b2d31] text-white border border-[#3a3d43] focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none"
-              />
-              <p className="text-xs text-gray-400 mt-2">Davet linkini yapıştır; doğrulanınca sunucuya katılırsın.</p>
+            <div className="max-w-xl space-y-3">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Davet kodu</label>
+                <div className="flex gap-2">
+                  <input
+                    value={invite} onChange={(e) => { setInvite(e.target.value); setPreview(null); }}
+                    placeholder="aBcD1234"
+                    className="flex-1 p-3 rounded-md bg-[#2b2d31] text-white border border-[#3a3d43] focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none"
+                    onKeyDown={(e) => e.key === "Enter" && (preview ? joinServer() : previewInvite())}
+                  />
+                  {!preview && (
+                    <button onClick={previewInvite} disabled={previewLoading || !invite.trim()}
+                      className="px-4 rounded-md bg-[#2b2d31] hover:bg-[#3a3d43] text-gray-200 disabled:opacity-60">
+                      {previewLoading ? "..." : "Ara"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {preview && (
+                <div className="p-4 rounded-lg bg-[#1e1f22] border border-[#3a3d43] flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#2b2d31] grid place-items-center text-xl font-bold text-white shrink-0">
+                    {preview.serverIcon
+                      ? <img src={preview.serverIcon} alt="" className="w-full h-full object-cover rounded-xl" />
+                      : preview.serverName?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-medium truncate">{preview.serverName}</div>
+                    <div className="text-gray-400 text-xs">Davet: {preview.creatorName}</div>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-400">Davet kodunu yapıştır, sunucuyu önizle ve katıl.</p>
             </div>
           )}
         </div>

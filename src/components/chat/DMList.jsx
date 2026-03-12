@@ -21,7 +21,9 @@ export default function DMList({ items }) {
             className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm
               ${active ? "bg-[#363636] text-white" : "text-gray-300 hover:bg-[#2B2B2B]"}`}
           >
-            <span className="w-8 h-8 rounded-full bg-[#2B2B2B] grid place-items-center">👤</span>
+            <span className="w-8 h-8 rounded-full bg-[#2B2B2B] grid place-items-center text-gray-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            </span>
             <div className="flex-1 text-left min-w-0">
               <div className="truncate">{dm.name}</div>
               <div className="text-[11px] text-gray-500 truncate">{dm.last}</div>

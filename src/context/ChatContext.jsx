@@ -3,8 +3,12 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
-  const [activeServerId, setActiveServerId] = useState(null);
-  const [activeChannelId, setActiveChannelId] = useState(null);
+  const [activeServerId, setActiveServerId] = useState(
+    () => localStorage.getItem("cl-activeServerId") || null
+  );
+  const [activeChannelId, setActiveChannelId] = useState(
+    () => localStorage.getItem("cl-activeChannelId") || null
+  );
 
   // sunucu bazlı son ziyaret edilen kanal
   const [lastVisitedByServer, setLastVisitedByServer] = useState(() => {
@@ -18,6 +22,17 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     localStorage.setItem("lastVisitedByServer", JSON.stringify(lastVisitedByServer));
   }, [lastVisitedByServer]);
+
+  // Aktif sunucu ve kanalı localStorage'a kaydet
+  useEffect(() => {
+    if (activeServerId) localStorage.setItem("cl-activeServerId", activeServerId);
+    else localStorage.removeItem("cl-activeServerId");
+  }, [activeServerId]);
+
+  useEffect(() => {
+    if (activeChannelId) localStorage.setItem("cl-activeChannelId", activeChannelId);
+    else localStorage.removeItem("cl-activeChannelId");
+  }, [activeChannelId]);
 
   const value = useMemo(
     () => ({

@@ -13,8 +13,8 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await register(form.username, form.email, form.password);
-      nav("/login"); // kayıt sonrası login'e yönlendirelim
+      await register(form.userName, form.email, form.password);
+      nav("/app"); // kayıt sonrası ana sayfaya yönlendir (register zaten login yapıyor)
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Kayıt başarısız");
     }
@@ -28,8 +28,8 @@ export default function Register() {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <input
             type="text"
-            name="username"
-            value={form.username}
+            name="userName"
+            value={form.userName}
             onChange={handleChange}
             placeholder="Kullanıcı adı"
             className="w-full p-3 rounded-md bg-[#3A3A3A] text-white border border-[#4A4A4A]"

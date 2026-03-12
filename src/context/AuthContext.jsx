@@ -4,7 +4,7 @@ import axios from "axios";
 import { sessionBus } from "../utils/sessionBus";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
+ baseURL: import.meta.env.VITE_API_URL || "",
   withCredentials: false,
 });
 
@@ -133,9 +133,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    await fetchMe();
+  }, [fetchMe]);
+
   const value = useMemo(
-    () => ({ user, token, loading, login, register, logout, api }),
-    [user, token, loading, login, register, logout]
+    () => ({ user, token, loading, login, register, logout, refreshUser, api }),
+    [user, token, loading, login, register, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
