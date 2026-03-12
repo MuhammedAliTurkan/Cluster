@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cluster Call Demo</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 0; padding: 16px; }
+    h1 { font-size: 18px; margin: 0 0 12px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    label { font-size: 12px; color: #333; display: block; }
+    input, select { padding: 6px 8px; min-width: 240px; }
+    button { padding: 6px 10px; cursor: pointer; }
+    .group { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    #log { height: 200px; overflow: auto; background: #0b1021; color: #bfeaff; padding: 8px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    #meet { width: 100%; height: 520px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+  <h1>Cluster – Arama Demo (STOMP + Jitsi)</h1>
+
+  <div class="group">
+    <div class="row">
+      <div>
+        <label>Backend URL</label>
+        <input id="baseUrl" value="http://localhost:8080" />
+      </div>
+      <div>
+        <label>JWT (REST & WS Authorization)</label>
+        <input id="authToken" placeholder="Bearer'sız token" />
+      </div>
+      <div>
+        <label>Kanal ID</label>
+        <input id="channelId" placeholder="ör. 123" />
+      </div>
+      <div>
+        <label>Görünen İsim</label>
+        <input id="displayName" placeholder="Adınız" />
+      </div>
+      <div>
+        <label>Mod</label>
+        <select id="mode">
+          <option value="video" selected>video</option>
+          <option value="audio">audio</option>
+          <option value="screenshare">screenshare</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="connectWs">WS Bağlan</button>
+      <button id="disconnectWs">WS Kapat</button>
+      <button id="subscribe">Kanalı Dinle</button>
+      <button id="invite">Arama Gönder</button>
+      <button id="accept">Kabul Et</button>
+      <button id="decline">Reddet</button>
+      <button id="startMeet">Token Al + Jitsi Başlat</button>
+      <button id="hangup">Görüşmeyi Bitir</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div><strong>Log</strong></div>
+    <pre id="log"></pre>
+  </div>
+
+  <div class="group">
+    <div><strong>Jitsi</strong></div>
+    <div id="meet"></div>
+  </div>
+
+  <script>
+    const els = {
+      baseUrl: document.getElementById('baseUrl'),
+      authToken: document.getElementById('authToken'),
+      channelId: document.getElementById('channelId'),
+      displayName: document.getElementById('displayName'),
+      mode: document.getElementById('mode'),
+      connectWs: document.getElementById('connectWs'),
+      disconnectWs: document.getElementById('disconnectWs'),
+      subscribe: document.getElementById('subscribe'),
+      invite: document.getElementById('invite'),
+      accept: document.getElementById('accept'),
+      decline: document.getElementById('decline'),
+      startMeet: document.getElementById('startMeet'),
+      hangup: document.getElementById('hangup'),
+      log: document.getElementById('log'),
+      meet: document.getElementById('meet')
+    };
+
+    let stompClient = null;
+    let subscription = null;
+    let jitsiApi = null;
+
+    const log = (...args) => {
+      const line = args.map(v => {
+        try { return typeof v === 'string' ? v : JSON.stringify(v); }
+        catch { return String(v); }
+      }).join(' ');
+      els.log.textContent += `\n${new Date().toISOString()} ${line}`;
+      els.log.scrollTop = els.log.scrollHeight;
+    };
+
+    function connectWs() {
+      const base = els.baseUrl.value.replace(/\/$/, '');
+      const token = els.authToken.value.trim();
+      const url = base + '/ws';
+      const sock = new SockJS(url);
+      stompClient = Stomp.over(sock);
+      stompClient.debug = null; // sessiz mod
+      const headers = token ? { Authorization: 'Bearer ' + token } : {};
+      stompClient.connect(headers, () => {
+        log('STOMP connected');
+      }, (err) => {
+        log('STOMP error', err);
+      });
+    }
+
+    function disconnectWs() {
+      if (subscription) { subscription.unsubscribe(); subscription = null; }
+      if (stompClient && stompClient.connected) { stompClient.disconnect(() => log('STOMP disconnected')); }
+      stompClient = null;
+    }
+
+    function subscribeChannel() {
+      if (!stompClient || !stompClient.connected) { return log('Önce WS bağlan'); }
+      const ch = els.channelId.value.trim();
+      if (!ch) return log('channelId gerekli');
+      const dest = `/topic/channel.${ch}`;
+      if (subscription) { subscription.unsubscribe(); }
+      subscription = stompClient.subscribe(dest, (msg) => {
+        try { log('Mesaj:', JSON.parse(msg.body)); } catch { log('Mesaj:', msg.body); }
+      });
+      log('Abone olundu:', dest);
+    }
+
+    function send(dest, body) {
+      if (!stompClient || !stompClient.connected) { return log('Önce WS bağlan'); }
+      stompClient.send(dest, {}, JSON.stringify(body));
+    }
+
+    function invite() {
+      const ch = els.channelId.value.trim();
+      const mode = els.mode.value;
+      if (!ch) return log('channelId gerekli');
+      send('/app/call.invite', { channelId: ch, mode });
+      log('CALL_INVITE gönderildi');
+    }
+
+    function respond(type) {
+      const ch = els.channelId.value.trim();
+      const mode = els.mode.value;
+      if (!ch) return log('channelId gerekli');
+      send('/app/call.response', { channelId: ch, mode, type });
+      log(type + ' gönderildi');
+    }
+
+    async function startMeet() {
+      const base = els.baseUrl.value.replace(/\/$/, '');
+      const token = els.authToken.value.trim();
+      const ch = els.channelId.value.trim();
+      const mode = els.mode.value;
+      const displayName = els.displayName.value.trim() || 'Guest';
+      if (!ch) return log('channelId gerekli');
+      try {
+        const r = await fetch(base + '/media/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+          body: JSON.stringify({ channelId: ch, mode, displayName })
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          throw new Error('HTTP ' + r.status + ' ' + t);
+        }
+        const data = await r.json();
+        log('Media token alındı', data);
+        await ensureExternalApiLoaded(data.meetUrl);
+        startJitsi(data, displayName);
+      } catch (e) {
+        log('startMeet hata:', e.message || e);
+      }
+    }
+
+    async function ensureExternalApiLoaded(meetUrl) {
+      if (window.JitsiMeetExternalAPI) return;
+      if (!meetUrl) throw new Error('meetUrl boş');
+      const src = meetUrl.replace(/\/$/, '') + '/external_api.js';
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src; s.async = true; s.onload = resolve; s.onerror = () => reject(new Error('external_api yüklenemedi: ' + src));
+        document.head.appendChild(s);
+      });
+    }
+
+    function startJitsi(resp, displayName) {
+      try { if (jitsiApi) { jitsiApi.dispose(); jtsiApi = null; } } catch {}
+      const domain = new URL(resp.meetUrl).host; // host:port
+      const parent = els.meet;
+      parent.innerHTML = '';
+      const options = {
+        roomName: resp.room,
+        jwt: resp.jwt,
+        parentNode: parent,
+        configOverwrite: {},
+        interfaceConfigOverwrite: {},
+        userInfo: { displayName }
+      };
+      jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      log('Jitsi başlatıldı', { domain, room: resp.room, mode: resp.mode });
+    }
+
+    function hangup() {
+      if (jitsiApi) { jitsiApi.executeCommand('hangup'); jitsiApi.dispose(); jitsiApi = null; }
+      els.meet.innerHTML = '';
+      log('Görüşme sonlandırıldı');
+    }
+
+    // UI bindings
+    els.connectWs.onclick = connectWs;
+    els.disconnectWs.onclick = disconnectWs;
+    els.subscribe.onclick = subscribeChannel;
+    els.invite.onclick = invite;
+    els.accept.onclick = () => respond('CALL_ACCEPT');
+    els.decline.onclick = () => respond('CALL_DECLINE');
+    els.startMeet.onclick = startMeet;
+    els.hangup.onclick = hangup;
+  </script>
+</body>
+</html>
+

@@ -2,15 +2,27 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { subscribeTopic, publishApp } from "../../services/ws";
+import { useCall } from "../../context/CallContext";
 import dmApi from "../../services/dmApi";
 
-export default function ChatWindow({ channelId }) {
+export default function ChatWindow({ channelId, isDM }) {
   const { user } = useAuth();
+  const { startCall, processSignal } = useCall();
   const meId = useMemo(() => user?.id || localStorage.getItem("userId"), [user?.id]);
 
   const [messages, setMessages] = useState([]);
   const seenIdsRef = useRef(new Set());
   const bottomRef = useRef(null);
+  const [startingCall, setStartingCall] = useState(false);
+
+  // Call signals subscription for this DM channel
+  useEffect(() => {
+    if (!channelId) return;
+    const unsub = subscribeTopic(`/topic/channel.${channelId}`, (body) => {
+      try { processSignal?.(body); } catch {}
+    });
+    return unsub;
+  }, [channelId, processSignal]);
 
   // İlk mesajları getir
   useEffect(() => {
@@ -65,9 +77,7 @@ export default function ChatWindow({ channelId }) {
   const sendMessage = (content) => {
     const text = (content ?? "").trim();
     if (!text) return;
-    const token = localStorage.getItem("token"); // raw JWT
     publishApp(`/app/channels/${channelId}/send`, {
-      token,
       content: text,
       type: "TEXT",
       parentMessageId: null,
@@ -85,6 +95,30 @@ export default function ChatWindow({ channelId }) {
 
   return (
     <div className="flex flex-col h-full bg-[#151515]">
+      {/* DM sesli arama butonu */}
+      {isDM && channelId && (
+        <div className="h-12 flex items-center justify-end gap-2 px-3 border-b border-[#242424] bg-[#181818]">
+          <button
+            disabled={startingCall}
+            onClick={async () => {
+              try {
+                setStartingCall(true);
+                startCall({ channelId, mode: "VOICE" });
+              } catch (e) {
+                console.error("start voice call error", e);
+              } finally {
+                setStartingCall(false);
+              }
+            }}
+            className="px-3 py-1.5 text-sm rounded-lg bg-[#2B2B2B] border border-[#3A3A3A] hover:bg-[#3A3A3A] disabled:opacity-60"
+            title="Sesli arama başlat"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-5 h-5">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          </button>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((m) => {
           const mine = isMine(m);

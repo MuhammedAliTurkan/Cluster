@@ -2,7 +2,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
+import { CallProvider } from "./context/CallContext";
 import { ModalProvider } from "./context/ModalContext";
+import { MediaProvider } from "./context/MediaContext";
 
 import PrivateRoute from "./components/PrivateRoute";
 import Login from "./pages/Login";
@@ -31,6 +33,8 @@ export default function App() {
       <AuthProvider>
         <ChatProvider>
           <ModalProvider>
+            <MediaProvider>
+            <CallProvider>
             <Routes>
               {/* Kök yönlendirme */}
               <Route path="/" element={<RootGate />} />
@@ -52,6 +56,8 @@ export default function App() {
               {/* Bilinmeyen her şey köke döner */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </CallProvider>
+            </MediaProvider>
           </ModalProvider>
         </ChatProvider>
       </AuthProvider>

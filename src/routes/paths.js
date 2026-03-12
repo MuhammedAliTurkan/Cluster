@@ -6,5 +6,6 @@ export const paths = {
   video: (rid) => `/app/video/${rid}`,
   chat: "/app/chat",
   discover: "/app/discover",
-  serverHub: "/app/server-hub",       // ⭐ eklendi
+  serverSettings: "/app/server-settings",
+  serverHub: "/app/server-hub",
 };

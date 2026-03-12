@@ -73,9 +73,9 @@ export default function CreateChannelModal() {
       <form onSubmit={onSubmit} className="space-y-4">
         {/* Kanal tipi */}
         <div className="flex gap-2">
-          <TypePill selected={form.type==="text"} onClick={()=>setForm(f=>({ ...f, type:"text" }))} icon="#" label="Metin" />
-          <TypePill selected={form.type==="voice"} onClick={()=>setForm(f=>({ ...f, type:"voice" }))} icon="🔊" label="Ses" />
-          <TypePill selected={form.type==="video"} onClick={()=>setForm(f=>({ ...f, type:"video" }))} icon="🎥" label="Video" />
+          <TypePill selected={form.type==="text"} onClick={()=>setForm(f=>({ ...f, type:"text" }))} icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M4 9h3l3-3v12l-3-3H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" /></svg>} label="Metin" />
+          <TypePill selected={form.type==="voice"} onClick={()=>setForm(f=>({ ...f, type:"voice" }))} icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>} label="Ses" />
+          <TypePill selected={form.type==="video"} onClick={()=>setForm(f=>({ ...f, type:"video" }))} icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>} label="Video" />
         </div>
 
         <div>
@@ -113,7 +113,7 @@ export default function CreateChannelModal() {
 
         {ok && (
           <div className="text-sm text-green-400">
-            ✅ Kanal oluşturuldu (mock).
+            Kanal oluşturuldu (mock).
           </div>
         )}
       </form>

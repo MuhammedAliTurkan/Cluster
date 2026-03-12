@@ -11,9 +11,12 @@
     "tailwind:init": "tailwindcss init -p"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.20",
+    "@livekit/components-styles": "^1.2.0",
     "@stomp/stompjs": "^7.2.0",
     "@tailwindcss/vite": "^4.1.13",
     "axios": "^1.12.2",
+    "livekit-client": "^2.17.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^6.30.1",
@@ -24,6 +27,7 @@
     "@tailwindcss/postcss": "^4.1.13",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-basic-ssl": "^2.1.4",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
