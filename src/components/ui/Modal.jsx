@@ -7,10 +7,10 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
       {/* panel */}
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <div
-          className="w-full rounded-2xl border border-[#333] bg-[#1E1E1E] shadow-2xl"
+          className="w-full rounded-2xl border border-border-light bg-surface-2 shadow-2xl"
           style={{ maxWidth }}
         >
-          <div className="h-12 flex items-center justify-between px-4 border-b border-[#2a2a2a] bg-[#222] rounded-t-2xl">
+          <div className="h-12 flex items-center justify-between px-4 border-b border-border bg-surface-3 rounded-t-2xl">
             <div className="font-semibold">{title}</div>
             <button
               onClick={onClose}
@@ -22,7 +22,7 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
           </div>
           <div className="p-5">{children}</div>
           {footer && (
-            <div className="px-5 py-3 border-t border-[#2a2a2a] bg-[#1b1b1b] rounded-b-2xl">
+            <div className="px-5 py-3 border-t border-border bg-surface-2 rounded-b-2xl">
               {footer}
             </div>
           )}

@@ -48,12 +48,12 @@ export default function BackButton({
         }}
         className="
           group relative inline-flex h-9 w-9 items-center justify-center
-          rounded-full border border-[#2b2b2b]/80 bg-[#1f1f1f]
+          rounded-full border border-border/80 bg-surface-2
           shadow-sm
           transition
-          hover:border-[#3a3a3a] hover:bg-[#262626]
+          hover:border-border-light hover:bg-surface-3
           active:scale-95
-          focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60
         "
       >
         {/* chevron-left svg */}
@@ -74,7 +74,7 @@ export default function BackButton({
           className="
             pointer-events-none absolute inset-0 rounded-full
             opacity-0 transition group-hover:opacity-100
-            ring-2 ring-orange-500/20
+            ring-2 ring-accent/20
           "
         />
       </button>
@@ -91,7 +91,7 @@ export default function BackButton({
         <span
           className="
             ml-1 hidden sm:inline-flex items-center justify-center
-            rounded-md border border-[#2f2f2f] bg-[#1b1b1b]
+            rounded-md border border-border bg-surface-2
             px-1.5 py-0.5 text-[11px] leading-none text-gray-400
           "
         >

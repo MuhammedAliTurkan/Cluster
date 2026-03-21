@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import friendsApi from "../../services/friendsApi";
+import { subscribeTopic } from "../../services/ws";
 
 export default function FriendRequestsBell() {
   const [open, setOpen] = useState(false);
@@ -19,8 +20,9 @@ export default function FriendRequestsBell() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 20000); // 20sn polling
-    return () => clearInterval(t);
+    // WebSocket ile anlık güncelleme
+    const unsub = subscribeTopic("/user/queue/friend-events", () => load());
+    return () => unsub?.();
   }, []);
 
   // panel dışına tıklayınca kapat
@@ -63,7 +65,7 @@ export default function FriendRequestsBell() {
           />
         </svg>
         {!!badge && (
-          <span className="absolute -top-1 -right-1 text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-orange-500 text-white">
+          <span className="absolute -top-1 -right-1 text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-accent text-white">
             {badge}
           </span>
         )}
@@ -72,7 +74,7 @@ export default function FriendRequestsBell() {
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 mt-2 w-80 max-w-[85vw] rounded-xl border border-white/10 bg-[#0f1621] shadow-xl overflow-hidden z-50"
+          className="absolute right-0 mt-2 w-80 max-w-[85vw] rounded-xl border border-white/10 bg-surface-1 shadow-xl overflow-hidden z-50"
         >
           <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
             <div className="text-sm font-medium">Gelen istekler</div>

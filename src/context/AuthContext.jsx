@@ -1,14 +1,17 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { sessionBus } from "../utils/sessionBus";
+import { setupMockInterceptor } from "../mock/mockApi";
 
 export const api = axios.create({
- baseURL: import.meta.env.VITE_API_URL || "",
+  baseURL: import.meta.env.VITE_API_URL || "",
   withCredentials: false,
 });
 
-// cfg.url mutlak da olabilir relatif de; path'i güvenle çıkar
+// DEMO: Mock interceptor — backend olmadan calisir
+setupMockInterceptor(api);
+
 function getPath(url) {
   try {
     const base = api?.defaults?.baseURL || window.location.origin;
@@ -18,36 +21,67 @@ function getPath(url) {
   }
 }
 
-// Sadece login/register anonim; /api/auth/me anonim DEĞİL
 function isAnonymousRequest(cfg) {
   const p = getPath(cfg?.url);
-  return p === "/api/auth/login" || p === "/api/auth/register" || p.startsWith("/actuator/health");
+  return p === "/api/auth/login" || p === "/api/auth/register"
+    || p === "/api/auth/refresh" || p.startsWith("/actuator/health");
+}
+
+/* ── Token storage helpers ── */
+function getStorage() {
+  // "Beni hatırla" seçildiyse localStorage, yoksa sessionStorage
+  return localStorage.getItem("cl-remember") === "true" ? localStorage : sessionStorage;
+}
+
+function getToken() {
+  // Önce localStorage, sonra sessionStorage kontrol et
+  const t = localStorage.getItem("token") || sessionStorage.getItem("token");
+  return t && t !== "null" && t !== "undefined" ? t : null;
+}
+
+function getRefreshToken() {
+  const t = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
+  return t && t !== "null" && t !== "undefined" ? t : null;
+}
+
+function storeTokens(accessToken, refreshToken, remember) {
+  const storage = remember ? localStorage : sessionStorage;
+  // Diğer storage'ı temizle
+  const other = remember ? sessionStorage : localStorage;
+  other.removeItem("token");
+  other.removeItem("refreshToken");
+
+  storage.setItem("token", accessToken);
+  if (refreshToken) storage.setItem("refreshToken", refreshToken);
+  if (remember) localStorage.setItem("cl-remember", "true");
+  else localStorage.removeItem("cl-remember");
+}
+
+function clearTokens() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("cl-remember");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("refreshToken");
 }
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => {
-    const raw = localStorage.getItem("token");
-    return raw && raw !== "null" && raw !== "undefined" ? raw : null;
-  });
+  const [token, setToken] = useState(getToken);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const refreshingRef = useRef(null); // tek refresh isteği garantisi
 
-  // Request interceptor
+  // Request interceptor — her isteğe access token ekle
   useEffect(() => {
     const reqId = api.interceptors.request.use((cfg) => {
-      const raw = localStorage.getItem("token");
-      const t = raw && raw !== "null" && raw !== "undefined" ? raw : null;
-
+      const t = getToken();
       if (t && !isAnonymousRequest(cfg)) {
         cfg.headers = cfg.headers || {};
         cfg.headers.Authorization = `Bearer ${t}`;
-      } else if (cfg?.headers && "Authorization" in cfg.headers) {
-        delete cfg.headers.Authorization;
       }
-
       if (!cfg.headers["Content-Type"] && cfg.data && typeof cfg.data === "object") {
         cfg.headers["Content-Type"] = "application/json";
       }
@@ -56,12 +90,23 @@ export function AuthProvider({ children }) {
     return () => api.interceptors.request.eject(reqId);
   }, []);
 
-  // Response interceptor (401 → global logout)
+  // Response interceptor — 401'de refresh dene, başarısızsa logout
   useEffect(() => {
     const resId = api.interceptors.response.use(
       (res) => res,
-      (err) => {
-        if (err?.response?.status === 401) sessionBus.emitUnauthorized();
+      async (err) => {
+        const orig = err.config;
+        if (err?.response?.status === 401 && !orig._retry && !isAnonymousRequest(orig)) {
+          orig._retry = true;
+          const refreshed = await tryRefresh();
+          if (refreshed) {
+            // Yeni token ile tekrar dene
+            orig.headers.Authorization = `Bearer ${getToken()}`;
+            return api(orig);
+          }
+          // Refresh de başarısız → logout
+          sessionBus.emitUnauthorized();
+        }
         return Promise.reject(err);
       }
     );
@@ -72,23 +117,65 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const off = sessionBus.onUnauthorized(() => logout());
     return off;
-  }, []); // logout stable
+  }, []);
+
+  /** Refresh token ile yeni access token al */
+  const tryRefresh = async () => {
+    const rt = getRefreshToken();
+    if (!rt) return false;
+
+    // Aynı anda birden fazla refresh isteği gönderme
+    if (refreshingRef.current) return refreshingRef.current;
+
+    refreshingRef.current = (async () => {
+      try {
+        const { data } = await axios.post(
+          (import.meta.env.VITE_API_URL || "") + "/api/auth/refresh",
+          { refreshToken: rt }
+        );
+        if (data?.token) {
+          const remember = localStorage.getItem("cl-remember") === "true";
+          storeTokens(data.token, data.refreshToken, remember);
+          setToken(data.token);
+          if (data.user) setUser(data.user);
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      } finally {
+        refreshingRef.current = null;
+      }
+    })();
+
+    return refreshingRef.current;
+  };
 
   const fetchMe = useCallback(async () => {
-    if (!token) {
+    const t = getToken();
+    if (!t) {
       setUser(null);
       setLoading(false);
       return;
     }
     try {
-      // EKSTRA EMNİYET: header'ı burada da elle ekliyoruz
-      const t = localStorage.getItem("token");
       const { data } = await api.get("/api/auth/me", {
-        headers: t ? { Authorization: `Bearer ${t}` } : {},
+        headers: { Authorization: `Bearer ${t}` },
       });
       setUser(data);
     } catch {
-      localStorage.removeItem("token");
+      // Access token expired → refresh dene
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        try {
+          const { data } = await api.get("/api/auth/me", {
+            headers: { Authorization: `Bearer ${getToken()}` },
+          });
+          setUser(data);
+          return;
+        } catch {}
+      }
+      clearTokens();
       setToken(null);
       setUser(null);
     } finally {
@@ -102,12 +189,11 @@ export function AuthProvider({ children }) {
   }, [fetchMe]);
 
   const login = useCallback(
-    async (email, password) => {
+    async (email, password, remember = true) => {
       const { data } = await api.post("/api/auth/login", { email, password });
-      const t = data?.token;
-      if (t) {
-        localStorage.setItem("token", t);
-        setToken(t);
+      if (data?.token) {
+        storeTokens(data.token, data.refreshToken, remember);
+        setToken(data.token);
       }
       if (data?.user) {
         setUser(data.user);
@@ -120,15 +206,18 @@ export function AuthProvider({ children }) {
   );
 
   const register = useCallback(
-    async (userName,email, password) => {
-      await api.post("/api/auth/register", { userName,email, password });
-      return login(email, password);
+    async (userName, email, password) => {
+      await api.post("/api/auth/register", { userName, email, password });
+      return login(email, password, true);
     },
     [login]
   );
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("token");
+  const logout = useCallback(async () => {
+    try {
+      await api.post("/api/auth/logout");
+    } catch {} // Sunucu erişilemezse de çıkış yap
+    clearTokens();
     setToken(null);
     setUser(null);
   }, []);

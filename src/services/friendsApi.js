@@ -22,6 +22,14 @@ export const friendsApi = {
   // ana liste
   async list()                { return (await api.get(ENDPOINTS.listFriends)).data; },
   async listFriends()         { return (await api.get(ENDPOINTS.listFriends)).data; },
+
+  // arkadaş kaldır
+  async remove(relationId)    { return (await api.delete(`/api/friends/${relationId}`)).data; },
+
+  // block
+  async block(userId)         { return (await api.post(`/api/blocks/${userId}`)).data; },
+  async unblock(userId)       { return (await api.delete(`/api/blocks/${userId}`)).data; },
+  async listBlocked()         { return (await api.get(`/api/blocks`)).data; },
 };
 
 export default friendsApi;

@@ -1,90 +1,59 @@
-// src/services/ws.js
+// DEMO: Mock WebSocket — backend olmadan calisir
+// Gercek STOMP baglantisi yok, sadece subscribe/publish API'si calisiyor
+
 if (typeof window !== "undefined" && typeof global === "undefined") {
   window.global = window;
 }
 
-import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client/dist/sockjs.js";
+const listeners = {}; // { topic: [callback, ...] }
+const reconnectListeners = new Set();
 
-// Backend WebSocket endpoint — tam URL olmalı
-const WS_HTTP_URL = import.meta.env.VITE_WS_HTTP_URL || "/ws";
-
-let client;
+// Fake connected client
+const mockClient = { connected: true };
 
 export function getWsClient() {
-  if (client) return client;
-
-  const enableDebug = String(import.meta?.env?.VITE_WS_DEBUG || "").trim() !== "";
-
-  client = new Client({
-    webSocketFactory: () => new SockJS(WS_HTTP_URL),
-    reconnectDelay: 2000,
-    debug: enableDebug ? (m) => console.log("[STOMP]", m) : () => {},
-
-    // STOMP CONNECT anında JWT token gönder
-    connectHeaders: {
-      Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-    },
-
-    // Her yeniden bağlantıda güncel token'ı al
-    beforeConnect: () => {
-      const token = localStorage.getItem("token");
-      if (client && token) {
-        client.connectHeaders = {
-          Authorization: `Bearer ${token}`,
-        };
-      }
-    },
-  });
-
-  client.onConnect = (f) => {
-    if (enableDebug) console.log("[STOMP] connected", f?.headers);
-  };
-  client.onStompError = (f) => {
-    console.error("[STOMP] broker error", f?.headers, f?.body);
-  };
-
-  client.activate();
-  return client;
+  return mockClient;
 }
 
 export function subscribeTopic(topic, onMessage) {
-  const c = getWsClient();
-
-  const doSub = () =>
-    c.subscribe(topic, (frame) => {
-      try {
-        onMessage?.(frame.body ? JSON.parse(frame.body) : null, frame);
-      } catch {
-        onMessage?.(frame.body, frame);
-      }
-    });
-
-  if (!c.connected) {
-    const prev = c.onConnect;
-    c.onConnect = (f) => {
-      prev?.(f);
-      doSub();
-    };
-    return () => {
-      if (c.onConnect === doSub) c.onConnect = prev || null;
-    };
-  }
-
-  const sub = doSub();
+  if (!listeners[topic]) listeners[topic] = [];
+  listeners[topic].push(onMessage);
   return () => {
-    try { sub?.unsubscribe?.(); } catch {}
+    listeners[topic] = (listeners[topic] || []).filter((fn) => fn !== onMessage);
   };
 }
 
 export function publishApp(dest, payload) {
-  const c = getWsClient();
-  const send = () => c.publish({ destination: dest, body: JSON.stringify(payload ?? {}) });
+  console.log("[MockWS] publish:", dest, payload);
 
-  if (!c.connected) {
-    const prev = c.onConnect;
-    c.onConnect = (f) => { prev?.(f); send(); };
-  } else {
-    send();
+  // Mesaj gonderimini simule et — ayni kanala mesaj olarak geri don
+  if (dest.includes("/send")) {
+    const match = dest.match(/\/channels\/([^/]+)\/send/);
+    if (match) {
+      const channelId = match[1];
+      import("../mock/mockData.js").then(({ addMockMessage }) => {
+        const msg = addMockMessage(channelId, payload.content);
+        setTimeout(() => {
+          const topic = `/topic/channels/${channelId}`;
+          (listeners[topic] || []).forEach((fn) => {
+            try { fn(msg); } catch {}
+          });
+        }, 100);
+      });
+    }
   }
+}
+
+export function onReconnect(fn) {
+  reconnectListeners.add(fn);
+  // Hemen cagir — "baglanti kuruldu" simule et
+  setTimeout(() => fn(), 200);
+  return () => reconnectListeners.delete(fn);
+}
+
+// Mock: topic'e disaridan mesaj gondermek icin (test amacli)
+export function mockInject(topic, data) {
+  (listeners[topic] || []).forEach((fn) => {
+    try { fn(data); } catch {}
+  });
 }
