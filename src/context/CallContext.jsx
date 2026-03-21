@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useMedia } from "./MediaContext";
 import { subscribeTopic, publishApp } from "../services/ws";
 
 const CallContext = createContext(null);
@@ -13,10 +14,16 @@ function normalizeInvite(msg) {
   const callId = msg.callId || msg.id || msg.call_id || null;
   const channelId = msg.channelId || msg.roomId || msg.room || msg.room_id || null;
   const roomId = msg.roomId || msg.room || msg.room_id || channelId || null;
+  const mode = msg.mode || msg.raw?.mode || null;
   const from = msg.from || msg.caller || msg.sender || (msg.fromUserId || msg.fromDisplayName
     ? { id: msg.fromUserId, username: msg.fromUserId, displayName: msg.fromDisplayName }
     : null);
-  return { raw: msg, type, callId, roomId, channelId, from };
+  return { raw: msg, type, callId, roomId, channelId, mode, from };
+}
+
+/** DM aramaları her zaman /app/voice/ route'una yönlendirilir (PersistentVoice kullanır) */
+function voiceRoute(channelId) {
+  return `/app/voice/${encodeURIComponent(channelId)}`;
 }
 
 export function CallProvider({ children }) {
@@ -24,16 +31,16 @@ export function CallProvider({ children }) {
   const [outgoing, setOutgoing] = useState(null); // {channelId, mode, callId?}
   const navigate = useNavigate();
   const { user } = useAuth() || {};
+  const media = useMedia();
 
   const callsTopicsEnv = import.meta?.env?.VITE_WS_CALLS_TOPICS || import.meta?.env?.VITE_WS_CALLS_TOPIC || "/user/queue/calls";
   const callsTopics = String(callsTopicsEnv)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const appPrefix = import.meta?.env?.VITE_WS_CALLS_APP_PREFIX || "/app/calls"; // legacy
   const defaultStart = "/app/call.invite"; // backend @MessageMapping("/call.invite")
-  const startDestTemplate = import.meta?.env?.VITE_WS_CALLS_START_DEST || defaultStart; // örn: /app/channels/:channelId/call/start
-  const respondDest = import.meta?.env?.VITE_WS_CALLS_RESP_DEST || "/app/call.response"; // backend @MessageMapping("/call.response")
+  const startDestTemplate = import.meta?.env?.VITE_WS_CALLS_START_DEST || defaultStart;
+  const respondDest = import.meta?.env?.VITE_WS_CALLS_RESP_DEST || "/app/call.response";
 
   const fmtDest = useCallback((tpl, vars) => {
     let d = String(tpl || "");
@@ -61,14 +68,11 @@ export function CallProvider({ children }) {
       setOutgoing((cur) => (cur && (cur.callId === inv.callId || cur.channelId === inv.channelId) ? null : cur));
     } else if (inv.type === "CALL_ACCEPT") {
       const ch = inv.channelId || inv.roomId;
-      const mode = inv.raw?.mode || outgoing?.mode || "VIDEO";
       if (ch) {
         setIncoming(null);
         setOutgoing(null);
-        const route = mode === "VOICE" || mode === "audio"
-          ? `/app/voice/${encodeURIComponent(ch)}`
-          : `/app/video/${encodeURIComponent(ch)}?channelId=${encodeURIComponent(ch)}&mode=${mode === "VIDEO" ? "video" : mode}`;
-        navigate(route, { replace: true });
+        // DM aramaları daima voice route'una (PersistentVoice)
+        navigate(voiceRoute(ch), { replace: true });
       }
     } else if (inv.type === "CALL_DECLINE") {
       setOutgoing(null);
@@ -89,12 +93,9 @@ export function CallProvider({ children }) {
       } catch {}
       setIncoming(null);
       const ch = inv.channelId || inv.roomId;
-      const mode = inv.raw?.mode || "video";
       if (ch) {
-        const route = mode === "VOICE" || mode === "audio"
-          ? `/app/voice/${encodeURIComponent(ch)}`
-          : `/app/video/${encodeURIComponent(ch)}?channelId=${encodeURIComponent(ch)}&mode=${mode === "VIDEO" ? "video" : mode}`;
-        navigate(route, { replace: true });
+        // DM aramaları daima voice route'una (PersistentVoice)
+        navigate(voiceRoute(ch), { replace: true });
       }
     },
     [incoming, respondDest, navigate]
@@ -116,7 +117,7 @@ export function CallProvider({ children }) {
   );
 
   const startCall = useCallback(
-    ({ channelId, mode = "VIDEO" } = {}) => {
+    ({ channelId, mode = "VOICE" } = {}) => {
       if (!channelId) return;
       try {
         const dest = fmtDest(startDestTemplate, { channelId, mode });
@@ -131,7 +132,7 @@ export function CallProvider({ children }) {
     const channelId = outgoing?.channelId;
     if (!channelId) { setOutgoing(null); return; }
     try {
-      publishApp(respondDest, { channelId, type: "CALL_DECLINE" });
+      publishApp(respondDest, { channelId, type: "CALL_CANCEL" });
     } catch {}
     setOutgoing(null);
   }, [outgoing, respondDest]);

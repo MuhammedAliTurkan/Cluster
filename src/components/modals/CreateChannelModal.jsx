@@ -48,14 +48,14 @@ export default function CreateChannelModal() {
     <div className="flex items-center justify-end gap-2">
       <button
         onClick={closeCreateChannel}
-        className="px-4 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3A3A3A] border border-[#3A3A3A]"
+        className="px-4 py-2 rounded-lg bg-surface-3 hover:bg-surface-5 border border-border-light"
       >
         İptal
       </button>
       <button
         onClick={onSubmit}
         disabled={submitting || !form.name.trim()}
-        className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 font-semibold disabled:opacity-50"
+        className="px-4 py-2 rounded-lg bg-accent-dark hover:bg-emerald-700 font-semibold disabled:opacity-50"
       >
         {submitting ? "Oluşturuluyor…" : "Kanal Oluştur"}
       </button>
@@ -85,7 +85,7 @@ export default function CreateChannelModal() {
             value={form.name}
             onChange={onChange}
             placeholder="genel, duyurular, standup…"
-            className="w-full bg-[#2B2B2B] border border-[#3A3A3A] rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full bg-surface-3 border border-border-light rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
@@ -96,7 +96,7 @@ export default function CreateChannelModal() {
               name="categoryId"
               value={form.categoryId}
               onChange={onChange}
-              className="w-full bg-[#2B2B2B] border border-[#3A3A3A] rounded-lg px-3 py-2"
+              className="w-full bg-surface-3 border border-border-light rounded-lg px-3 py-2"
             >
               {categoryOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -128,8 +128,8 @@ function TypePill({ selected, onClick, icon, label }) {
       onClick={onClick}
       className={`px-3 py-1.5 rounded-full border text-sm flex items-center gap-2
         ${selected
-          ? "border-orange-600 bg-orange-600/10 text-orange-400"
-          : "border-[#3A3A3A] bg-[#2B2B2B] text-gray-300 hover:bg-[#3A3A3A]"}`}
+          ? "border-accent bg-accent-dark/10 text-accent-light"
+          : "border-border-light bg-surface-3 text-gray-300 hover:bg-surface-5"}`}
     >
       <span className="w-5 text-center">{icon}</span>
       <span>{label}</span>

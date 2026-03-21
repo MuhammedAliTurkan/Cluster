@@ -6,14 +6,14 @@ export default function UserVoiceTray() {
 
   return (
     <div className="w-full p-2">
-      <div className="flex items-center gap-2 bg-[#1d1d1d] border border-[#2a2a2a] rounded-xl px-2 py-2">
+      <div className="flex items-center gap-2 bg-surface-2 border border-border rounded-xl px-2 py-2">
         <div className="relative">
-          <div className="w-9 h-9 rounded-full bg-[#2B2B2B] grid place-items-center text-gray-400">
+          <div className="w-9 h-9 rounded-full bg-surface-3 grid place-items-center text-gray-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-5 h-5">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
             </svg>
           </div>
-          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-[#1d1d1d] ${muted||deaf ? "bg-gray-500" : "bg-green-500"}`} />
+          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-border ${muted||deaf ? "bg-gray-500" : "bg-green-500"}`} />
         </div>
         <div className="min-w-0 mr-auto">
           <div className="text-sm">Sen</div>
@@ -53,8 +53,8 @@ function IconBtn({ children, active, ...rest }) {
       {...rest}
       className={`h-8 w-8 grid place-items-center rounded-lg border text-sm
         ${active
-          ? "bg-orange-600 border-orange-600 text-white"
-          : "bg-[#2B2B2B] border-[#3A3A3A] text-gray-200 hover:bg-[#3A3A3A]"}`}
+          ? "bg-accent-dark border-accent text-white"
+          : "bg-surface-3 border-border-light text-gray-200 hover:bg-surface-5"}`}
     >
       {children}
     </button>

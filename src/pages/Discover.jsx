@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { serverApi } from "../services/serverApi";
+import toast from "react-hot-toast";
 
 export default function Discover() {
   const [q, setQ] = useState("");
@@ -35,12 +36,13 @@ export default function Discover() {
       await serverApi.joinPublic(serverId);
       // Katıldıktan sonra listeden kaldır veya buton değiştir
       setList((prev) => prev.map((s) => s.id === serverId ? { ...s, joined: true } : s));
+      window.dispatchEvent(new Event("servers-updated"));
     } catch (e) {
       const msg = e.response?.data?.message || e.message;
       if (msg?.includes("zaten") || e.response?.status === 200) {
         setList((prev) => prev.map((s) => s.id === serverId ? { ...s, joined: true } : s));
       } else {
-        alert(msg || "Katılma başarısız");
+        toast.error(msg || "Katılma başarısız");
       }
     } finally {
       setJoining(null);
@@ -50,13 +52,13 @@ export default function Discover() {
   return (
     <div className="h-full flex flex-col">
       {/* üst bar */}
-      <div className="border-b border-[#2a2a2a] px-4 py-3 flex items-center justify-between gap-3">
+      <div className="border-b border-border px-4 py-3 flex items-center justify-between gap-3">
         <div className="text-lg font-semibold">Keşfet</div>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Sunucu ara…"
-          className="w-80 max-w-[60vw] p-2 rounded-md bg-[#2b2d31] text-white border border-[#3a3d43] focus:border-orange-500 focus:ring-2 focus:ring-orange-500 outline-none"
+          className="w-80 max-w-[60vw] p-2 rounded-md bg-surface-3 text-white border border-border-light focus:border-accent focus:ring-2 focus:ring-accent outline-none"
         />
       </div>
 
@@ -67,15 +69,26 @@ export default function Discover() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {list.map((g) => (
-              <div key={g.id} className="rounded-2xl bg-[#202225] border border-[#2a2a2a] overflow-hidden hover:shadow-lg transition">
-                <div className="h-28 w-full bg-gradient-to-br from-orange-500/40 to-orange-700/30 grid place-items-center">
-                  {g.iconUrl ? (
-                    <img src={g.iconUrl} alt="" className="h-full w-full object-cover" />
+              <div key={g.id} className="rounded-2xl bg-surface-2 border border-border overflow-hidden hover:shadow-lg transition">
+                {/* Banner alanı */}
+                <div className="h-28 w-full bg-gradient-to-br from-orange-500/40 to-orange-700/30 relative">
+                  {g.bannerUrl ? (
+                    <img src={g.bannerUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <span className="text-4xl font-bold text-white/60">{g.name?.charAt(0)?.toUpperCase()}</span>
+                    <div className="h-full w-full" />
                   )}
+                  {/* Icon — banner'ın sol altında */}
+                  <div className="absolute -bottom-5 left-4 w-12 h-12 rounded-full border-[3px] border-border overflow-hidden bg-surface-3">
+                    {g.iconUrl ? (
+                      <img src={g.iconUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full grid place-items-center text-sm font-bold text-white/60">
+                        {g.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="p-4">
+                <div className="p-4 pt-7">
                   <div className="flex items-center justify-between">
                     <div className="text-white font-semibold truncate">{g.name}</div>
                     <div className="text-xs text-gray-400 shrink-0 ml-2">
@@ -87,14 +100,14 @@ export default function Discover() {
                   )}
                   <div className="mt-4">
                     {g.joined ? (
-                      <span className="px-3 py-2 rounded-md bg-[#2b2d31] text-green-400 text-sm inline-flex items-center gap-1.5">
+                      <span className="px-3 py-2 rounded-md bg-surface-3 text-green-400 text-sm inline-flex items-center gap-1.5">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M20 6L9 17l-5-5" /></svg>
                         Katıldın
                       </span>
                     ) : (
                       <button
                         disabled={joining === g.id}
-                        className="px-3 py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-sm disabled:opacity-60"
+                        className="px-3 py-2 rounded-md bg-accent hover:bg-accent-dark text-white text-sm disabled:opacity-60"
                         onClick={() => joinServer(g.id)}
                       >
                         {joining === g.id ? "Katılıyor…" : "Katıl"}

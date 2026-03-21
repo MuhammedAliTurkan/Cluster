@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   LiveKitRoom,
@@ -43,7 +44,7 @@ function ParticipantCard({ participant, isLocal }) {
 
   return (
     <div
-      className={`relative rounded-xl overflow-hidden bg-[#1a1a2e] transition-all duration-200 ${
+      className={`relative rounded-xl overflow-hidden bg-surface-1 transition-all duration-200 ${
         isSpeaking ? "ring-2 ring-emerald-500" : "ring-1 ring-white/10"
       }`}
       style={{ aspectRatio: "16/9" }}
@@ -131,6 +132,27 @@ function RoomContent({ mode, onLeave, channelId }) {
 
   const toggleMic = () => media.toggleMic();
   const toggleCam = async () => {
+    // Kamera açılacaksa izin kontrolü yap
+    if (!camEnabled) {
+      try {
+        const perm = await navigator.permissions.query({ name: "camera" });
+        if (perm.state === "denied") {
+          toast.error("Kamera izni engellendi. Lütfen tarayıcının adres çubuğundaki kamera/kilit simgesine tıklayarak izni sıfırlayın ve tekrar deneyin.");
+          return;
+        }
+      } catch { /* permissions API desteklenmiyorsa devam et */ }
+      // "prompt" durumunda önce izin iste
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach((t) => t.stop());
+      } catch (e) {
+        console.error("Kamera izni alınamadı:", e);
+        if (e.name === "NotAllowedError") {
+          toast.error("Kamera izni reddedildi. Kamerayı kullanmak için izin vermeniz gerekiyor.");
+        }
+        return;
+      }
+    }
     try {
       await localParticipant.setCameraEnabled(!camEnabled);
     } catch (e) { console.error("Cam toggle error:", e); }
@@ -149,7 +171,7 @@ function RoomContent({ mode, onLeave, channelId }) {
   const hasScreen = !!activeScreen;
 
   return (
-    <div className="h-full w-full flex flex-col bg-[#111118]">
+    <div className="h-full w-full flex flex-col bg-surface-1">
       {/* Video alanı */}
       <div className="flex-1 min-h-0 p-3 flex gap-3">
         {hasScreen ? (
@@ -188,14 +210,14 @@ function RoomContent({ mode, onLeave, channelId }) {
       </div>
 
       {/* Alt kontrol çubuğu */}
-      <div className="shrink-0 px-4 py-3 bg-[#0a0a12] border-t border-white/5">
+      <div className="shrink-0 px-4 py-3 bg-surface-0 border-t border-white/5">
         <div className="flex items-center justify-center gap-2 relative">
           {/* Mikrofon */}
           <button
             onClick={toggleMic}
             className={`w-11 h-11 rounded-full grid place-items-center transition ${
               micEnabled
-                ? "bg-[#2d2d3d] text-white hover:bg-[#3d3d4d]"
+                ? "bg-surface-3 text-white hover:bg-surface-5"
                 : "bg-red-500 text-white hover:bg-red-600"
             }`}
             title={micEnabled ? "Mikrofonu kapat" : "Mikrofonu aç"}
@@ -221,7 +243,7 @@ function RoomContent({ mode, onLeave, channelId }) {
             onClick={toggleCam}
             className={`w-11 h-11 rounded-full grid place-items-center transition ${
               camEnabled
-                ? "bg-[#2d2d3d] text-white hover:bg-[#3d3d4d]"
+                ? "bg-surface-3 text-white hover:bg-surface-5"
                 : "bg-red-500 text-white hover:bg-red-600"
             }`}
             title={camEnabled ? "Kamerayı kapat" : "Kamerayı aç"}
@@ -246,7 +268,7 @@ function RoomContent({ mode, onLeave, channelId }) {
             className={`w-11 h-11 rounded-full grid place-items-center transition ${
               screenSharing
                 ? "bg-purple-500 text-white hover:bg-purple-600"
-                : "bg-[#2d2d3d] text-white hover:bg-[#3d3d4d]"
+                : "bg-surface-3 text-white hover:bg-surface-5"
             }`}
             title={screenSharing ? "Paylaşımı durdur" : "Ekran paylaş"}
           >
@@ -259,7 +281,7 @@ function RoomContent({ mode, onLeave, channelId }) {
           {/* Kalite Ayarları */}
           <button onClick={() => setShowQuality(!showQuality)}
             className={`w-11 h-11 rounded-full grid place-items-center transition ${
-              showQuality ? "bg-blue-500 text-white" : "bg-[#2d2d3d] text-gray-400 hover:bg-[#3d3d4d] hover:text-white"
+              showQuality ? "bg-blue-500 text-white" : "bg-surface-3 text-gray-400 hover:bg-surface-5 hover:text-white"
             }`} title="Kalite ayarları">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5">
               <circle cx="12" cy="12" r="3" strokeWidth="1.6"/>
@@ -349,12 +371,12 @@ export default function VideoCall() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#111118]">
+      <div className="h-full flex items-center justify-center bg-surface-1">
         <div className="text-center space-y-4">
           <div className="text-red-400 text-lg">{error}</div>
           <button
             onClick={() => navigate("/app/friends", { replace: true })}
-            className="px-4 py-2 bg-[#2B2B2B] rounded-lg hover:bg-[#3A3A3A] text-white"
+            className="px-4 py-2 bg-surface-3 rounded-lg hover:bg-surface-5 text-white"
           >
             Geri Dön
           </button>
@@ -365,7 +387,7 @@ export default function VideoCall() {
 
   if (!token || !wsUrl) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#111118]">
+      <div className="h-full flex items-center justify-center bg-surface-1">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
           <span className="text-gray-400">Bağlanılıyor...</span>

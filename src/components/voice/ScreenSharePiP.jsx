@@ -49,7 +49,7 @@ export default function ScreenSharePiP({ channelId }) {
     return (
       <div
         style={{ left: pos.x, top: pos.y, position: "fixed", zIndex: 9990 }}
-        className="bg-[#1e1f22] rounded-xl shadow-2xl border border-purple-500/30 px-3 py-2 flex items-center gap-2 cursor-move"
+        className="bg-surface-2 rounded-xl shadow-2xl border border-purple-500/30 px-3 py-2 flex items-center gap-2 cursor-move"
         onMouseDown={onMouseDown}
       >
         <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
@@ -71,7 +71,7 @@ export default function ScreenSharePiP({ channelId }) {
   return (
     <div
       style={{ left: pos.x, top: pos.y, position: "fixed", zIndex: 9990 }}
-      className="w-80 bg-[#111118] rounded-xl shadow-2xl border border-purple-500/30 overflow-hidden cursor-move"
+      className="w-80 bg-surface-1 rounded-xl shadow-2xl border border-purple-500/30 overflow-hidden cursor-move"
       onMouseDown={onMouseDown}
     >
       {/* Video */}
@@ -105,7 +105,7 @@ export default function ScreenSharePiP({ channelId }) {
       </div>
 
       {/* Kontroller */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[#0a0a12]">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-surface-0">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
           <span className="text-[10px] text-purple-300">Ekran Paylaşımı</span>

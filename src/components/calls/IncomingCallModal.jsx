@@ -1,6 +1,31 @@
+import { useEffect, useRef } from "react";
 import Modal from "../ui/Modal";
 
 export default function IncomingCallModal({ open, onClose, invite, onAccept, onDecline }) {
+  // Zil sesi — modal açıkken çalar, kapanınca durur
+  const ringRef = useRef(null);
+  useEffect(() => {
+    if (open) {
+      try {
+        if (!ringRef.current) ringRef.current = new Audio("/sounds/ringtone.mp3");
+        ringRef.current.loop = true;
+        ringRef.current.volume = 0.6;
+        ringRef.current.currentTime = 0;
+        ringRef.current.play().catch(() => {});
+      } catch {}
+    } else {
+      if (ringRef.current) {
+        ringRef.current.pause();
+        ringRef.current.currentTime = 0;
+      }
+    }
+    return () => {
+      if (ringRef.current) {
+        ringRef.current.pause();
+        ringRef.current.currentTime = 0;
+      }
+    };
+  }, [open]);
   const fromName =
     invite?.from?.displayName || invite?.from?.fullName || invite?.from?.username || invite?.from?.name || "Bilinmeyen";
   const room = invite?.roomId || invite?.raw?.room || invite?.raw?.room_id || invite?.raw?.channelId;

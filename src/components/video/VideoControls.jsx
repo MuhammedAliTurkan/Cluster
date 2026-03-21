@@ -1,6 +1,6 @@
 export default function VideoControls() {
   const Control = ({ children }) => (
-    <button className="px-4 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3A3A3A] border border-[#3A3A3A] grid place-items-center">{children}</button>
+    <button className="px-4 py-2 rounded-lg bg-surface-3 hover:bg-surface-5 border border-border-light grid place-items-center">{children}</button>
   );
   return (
     <div className="flex items-center justify-center gap-3">
@@ -19,7 +19,7 @@ export default function VideoControls() {
           <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
         </svg>
       </Control>
-      <button className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 font-semibold">Çık</button>
+      <button className="px-4 py-2 rounded-lg bg-accent-dark hover:bg-emerald-700 font-semibold">Çık</button>
     </div>
   );
 }

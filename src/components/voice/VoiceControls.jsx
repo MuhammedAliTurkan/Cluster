@@ -1,6 +1,6 @@
 export default function VoiceControls() {
   const Btn = ({ children }) => (
-    <button className="px-4 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3A3A3A] border border-[#3A3A3A] flex items-center gap-2">{children}</button>
+    <button className="px-4 py-2 rounded-lg bg-surface-3 hover:bg-surface-5 border border-border-light flex items-center gap-2">{children}</button>
   );
   return (
     <div className="flex items-center justify-center gap-3">
@@ -16,7 +16,7 @@ export default function VoiceControls() {
         </svg>
         Kulaklık
       </Btn>
-      <button className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 font-semibold">Bağlantıyı Kes</button>
+      <button className="px-4 py-2 rounded-lg bg-accent-dark hover:bg-emerald-700 font-semibold">Bağlantıyı Kes</button>
     </div>
   );
 }

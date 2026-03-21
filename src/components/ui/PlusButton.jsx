@@ -15,13 +15,13 @@ export default function PlusButton({
 
   const base =
     "inline-grid place-items-center rounded-full transition " +
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/70 " +
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 " +
     "active:scale-95";
 
   const style =
     variant === "solid"
-      ? "bg-[#2B2B2B] border border-[#3A3A3A] hover:bg-[#3A3A3A]"
-      : "bg-transparent border border-[#3A3A3A] hover:bg-[#2B2B2B]";
+      ? "bg-surface-3 border border-border-light hover:bg-surface-5"
+      : "bg-transparent border border-border-light hover:bg-surface-3";
 
   return (
     <button
@@ -44,7 +44,7 @@ export default function PlusButton({
         <path d="M12 5v14M5 12h14" />
       </svg>
       {/* subtle glow on hover */}
-      <span className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-orange-500/15 opacity-0 hover:opacity-100 transition" />
+      <span className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-accent/15 opacity-0 hover:opacity-100 transition" />
     </button>
   );
 }

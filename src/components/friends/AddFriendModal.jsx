@@ -77,7 +77,7 @@ export default function AddFriendModal({ open, onClose, onChanged }) {
         aria-label="Kapat"
       />
       {/* kart */}
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-[#2B2B2B] p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-surface-3 p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Arkadaş ekle</h2>
           <button
@@ -101,7 +101,7 @@ export default function AddFriendModal({ open, onClose, onChanged }) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Kullanıcı adı"
-              className="w-full rounded-xl bg-[#1F1F1F] px-3 py-2 text-white outline-none"
+              className="w-full rounded-xl bg-surface-2 px-3 py-2 text-white outline-none"
             />
             <button
               type="submit"
