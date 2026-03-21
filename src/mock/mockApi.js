@@ -37,10 +37,10 @@ async function handleMock(method, url, body) {
   await delay(50 + Math.random() * 150);
 
   // Auth
-  if (url.includes("/api/auth/login")) return { accessToken: "mock-token", refreshToken: "mock-refresh", user: ME };
-  if (url.includes("/api/auth/register")) return { accessToken: "mock-token", refreshToken: "mock-refresh", user: ME };
+  if (url.includes("/api/auth/login")) return { token: "mock-token", accessToken: "mock-token", refreshToken: "mock-refresh", user: ME };
+  if (url.includes("/api/auth/register")) return { token: "mock-token", accessToken: "mock-token", refreshToken: "mock-refresh", user: ME };
   if (url.includes("/api/auth/me")) return ME;
-  if (url.includes("/api/auth/refresh")) return { accessToken: "mock-token", refreshToken: "mock-refresh" };
+  if (url.includes("/api/auth/refresh")) return { token: "mock-token", accessToken: "mock-token", refreshToken: "mock-refresh" };
 
   // Users
   if (url.includes("/api/users/me") && method === "get") return { ...ME, settingsJson: "{}" };
