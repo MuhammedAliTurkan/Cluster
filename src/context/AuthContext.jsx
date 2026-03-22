@@ -191,9 +191,11 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async (email, password, remember = true) => {
       const { data } = await api.post("/api/auth/login", { email, password });
-      if (data?.token) {
-        storeTokens(data.token, data.refreshToken, remember);
-        setToken(data.token);
+      console.log("[Auth] login response:", data);
+      if (data?.token || data?.accessToken) {
+        const t = data.token || data.accessToken;
+        storeTokens(t, data.refreshToken, remember);
+        setToken(t);
       }
       if (data?.user) {
         setUser(data.user);
